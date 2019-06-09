@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
 
-from flask import Flask, json, request
+from flask import Flask, json, request, g
 from flask_restplus import Resource, Api
 from flask_restplus import Resource, Api
 from values import Configuration
+from streamLocal import Stream
+from recordLocal import Record
+from time import sleep
+import threading
 
 app = Flask(__name__)
 api = Api(app, version='1.0', title='PiVideoAPI',
@@ -11,6 +15,7 @@ api = Api(app, version='1.0', title='PiVideoAPI',
 )
 
 ns = api.namespace('pivideo', description='Interraction with the PiVideo')
+
 
 class base(Resource):
   
@@ -58,23 +63,50 @@ class paramRecord(Resource):
     
     return None, 201
 
-class Record(Resource):  
+class RecordEndpoint(Resource):  
 
   api.response(200, 'record started')   
   def get(self):
-    config = Configuration()
-    config.load() 
-    t_before = config.get('record', 't_before')
-    t_after = config.get('record', 't_after')
+    global t1
+    t1.storeVideo('videog')
     # appel du script qui lance l'enregistrement
 
     return None, 200
 
+class StreamEndpoint(Resource):  
+  api.response(200, 'stream started')   
+  def get(self):
+    global t1
+    if (request.args.get('start') == "true") :
+        t1 = Stream()
+        t1.start()
+        print("starting")
+        print(t1)
+        
+    elif (request.args.get('start') == "false"):
+        print("stopping")
+        print(threading.enumerate())
+        sleep(3)
+        t1.stop()
+        t1.join()
+        print("done")
+
+    return None, 200
             
 api.add_resource(base, '/')
-api.add_resource(Record, '/record', methods=['GET']) # Route_Record
+api.add_resource(RecordEndpoint, '/record', methods=['GET']) # Route_Record
 api.add_resource(paramRecord, '/param/record')
+api.add_resource(StreamEndpoint, '/stream')
 
 if __name__ == "__main__":
-    app.run(port='2000')
+    global t1
+    t1 = None
+    config = Configuration()
+    config.load() 
+    t_before = config.get('record', 't_before')
+    t_after = config.get('record', 't_after')
+    ip_backend = config.get('backend', 'address')
+    t1 = Record(ip_backend, t_before, t_after)
+    t1.start()
+    app.run(host='0.0.0.0', port='2001')
 

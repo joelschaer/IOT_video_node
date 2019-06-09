@@ -24,4 +24,8 @@ class Camera:
     self.camera.stop_recording()
     self.camera.stop_preview()
 
+camera = Camera()
+camera.start("yann")
+time.sleep(10)
+camera.stop()
 

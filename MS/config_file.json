@@ -1,10 +1,1 @@
-{ 
-    "record" : {
-      "t_before":10,
-      "t_after":15
-    },
-    "backend" : {
-      "address": "10.10.10.10",
-      "server_public_key": "filename"
-    }
-}
+{"record": {"t_before": 10, "t_after": 10}, "backend": {"address": "10.192.93.224", "server_public_key": "filename"}}
