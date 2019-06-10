@@ -8,6 +8,7 @@ from streamLocal import Stream
 from recordLocal import Record
 from time import sleep
 import threading
+import datetime
 
 app = Flask(__name__)
 api = Api(app, version='1.0', title='PiVideoAPI',
@@ -21,7 +22,7 @@ class base(Resource):
   
   def get(self):
     response = app.response_class(
-      response=json.dumps({'routes':{'/':'base', '/config':'change config'}}),
+      response=json.dumps({'routes':{'/':'endpoint list', '/param/record':'change record times', '/param/backend':'change backend address', '/record':'record', '/stream': 'stream'}}),
       status=200,
       mimetype='application/json'
     )
@@ -63,13 +64,40 @@ class paramRecord(Resource):
     
     return None, 201
 
+class paramBackend(Resource):
+  """interracting with configuration file"""
+
+  @api.response(200, 'Successing')
+  def get(self):
+    config = Configuration()
+    config.load()
+    record_values = {}
+    record_values['backend_address'] = config.get("backend", "address")
+
+    return json.dumps(record_values), 200
+  
+  @api.response(201, 'Key created successfully')
+  def post(self):
+    config = Configuration()
+    config.load()
+
+    try:
+      backend_address = request.form['backend_address']
+    except:
+      backend_address = None
+
+    if backend_address != None:
+      config.set(route='backend', key='address', value=backend_address)
+    config.store()
+    
+    return None, 201
+
 class RecordEndpoint(Resource):  
 
   api.response(200, 'record started')   
   def get(self):
     global t1
-    t1.storeVideo('videog')
-    # appel du script qui lance l'enregistrement
+    t1.storeVideo('video_'+str(datetime.datetime.now()))
 
     return None, 200
 
@@ -95,8 +123,10 @@ class StreamEndpoint(Resource):
             
 api.add_resource(base, '/')
 api.add_resource(RecordEndpoint, '/record', methods=['GET']) # Route_Record
-api.add_resource(paramRecord, '/param/record')
 api.add_resource(StreamEndpoint, '/stream')
+api.add_resource(paramRecord, '/param/record')
+api.add_resource(paramBackend, '/param/backend')
+
 
 if __name__ == "__main__":
     global t1
@@ -105,8 +135,7 @@ if __name__ == "__main__":
     config.load() 
     t_before = config.get('record', 't_before')
     t_after = config.get('record', 't_after')
-    ip_backend = config.get('backend', 'address')
-    t1 = Record(ip_backend, t_before, t_after)
+    t1 = Record(t_before, t_after)
     t1.start()
     app.run(host='0.0.0.0', port='2001')
 

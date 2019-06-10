@@ -5,22 +5,27 @@ import time
 import picamera
 import threading
 import requests
+from values import Configuration
 
 class Record(threading.Thread):
-    def __init__(self,  ip_backend, t_before, t_after):
+    def __init__(self, t_before, t_after):
         #threading.Thread.__init__(self)
         super(Record, self).__init__()
-        self._ip_backend = ip_backend
         self._t_before = t_before
         self._t_after = t_after
         self._nameVideo = None
         self._storeVideo = False
         self._running = False
         
+    def _get_backend_address(self):
+        config = Configuration()
+        config.load()
+        return config.get('backend', 'address')
+        
     def run(self):
         print("before "+ str(self._t_before))
         print("after "+ str(self._t_after))
-        print("ip backend "+ str(self._ip_backend))
+        print("ip backend "+ self._get_backend_address())
 
         self._storeVideo = False
         self._running = True
@@ -44,7 +49,7 @@ class Record(threading.Thread):
                     camera.wait_recording(self._t_after)
                     stream.copy_to(self._nameVideo + '.h264')
                     files = {'file': open(self._nameVideo + '.h264', 'rb')}
-                    requests.post("http://" + self._ip_backend + ":3030/videos", files=files)
+                    requests.post("http://" + self._get_backend_address() + ":3030/videos", files=files)
     
                     self._storeVideo = False
                     
